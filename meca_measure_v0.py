@@ -13,8 +13,7 @@ robot = mdr.Robot()
 
 def connectRobot():
     robot.Connect(address='192.168.0.100', disconnect_on_exception=False, enable_synchronous_mode=True)
-    print('Connected to robot')
-    
+    print('Connected to robot')  
 def init():
     connectRobot()
     print('Initalizing Robot: Activate, home, set limits...')
@@ -26,26 +25,29 @@ def init():
     print('Robot is homed and ready.')
     
     returnHome()
-    robot.SetGripperForce(15)
+    robot.SetGripperForce(30)
     robot.SetGripperRange(0,15)
-    robot.GripperOpen()
-    
-def returnHome ():
+    robot.GripperOpen()   
+def returnHome():
     robot.MoveJoints(0,0,0,0,0,0)
-    print('Robot is zeroed.')
-    
+    print('Robot is zeroed.') 
 def disconnectRobot():
     returnHome()
     robot.DeactivateRobot()
     robot.Disconnect()
     print('Now disconnected from the robot.')
-    
 def resetRobot():
     robot.ResetError()
     robot.ResumeMotion()
-    
+def readBarcode():
+    moveBarcode ()
+    s = socket.socket()
+    s.connect(('192.168.0.200', 2001))
+    s.send('< >'.encode())
+    print (s.recv(1024).decode())
+    s.close()
 def moveCircle (): 
-    robot.MovePose(223.100006,-37.849998,140,0,90,0) #pickup waypoint
+    movePickupWaypoint()
     robot.Delay(0.25)
     robot.MoveLin(180,-127,140,0,90,0) #top left
     robot.Delay(0.25)
@@ -62,7 +64,7 @@ def moveMeasure ():
 def moveBarcode ():
     robot.MovePose(225,17.5,170,-90,0,90) #keyence measurement way point
 
-def movePickup ():
+def movePickupWaypoint ():
     robot.MovePose(225,-38,140,0,90,0) #pickup waypoint
     
 def measureWires ():
@@ -74,27 +76,13 @@ def measureWires ():
     
 def pick ():
     robot.MoveLinRelTrf(10, 0, 0, 0, 0, 0)
-    robot.Delay(1)
     robot.GripperClose()
-    robot.MoveLinRelTrf(-50, 0, 0, 0, 0, 0)
-    robot.Delay(2)
-    robot.MovePose(223.100006,-37.849998,140.774994,0,90,0) #pickup waypoint
+    robot.MoveLinRelTrf(-10, 0, 0, 0, 0, 0)
+    movePickupWaypoint()
     
 def drop ():
     robot.MoveLinRelTrf(10, 0, 0, 0, 0, 0)
-    robot.Delay(1)
     robot.GripperOpen()
-    robot.Delay(0.25)
-    robot.MoveLinRelTrf(-50, 0, 0, 0, 0, 0)
-    robot.MovePose(223.100006,-37.849998,140.774994,0,90,0) #pickup waypoint
-    
-def readBarcode():
-    moveBarcode ()
-    s = socket.socket()
-    s.connect(('192.168.0.200', 2001))
-    s.send('< >'.encode())
-    print (s.recv(1024).decode())
-    s.close()
-
-
+    robot.MoveLinRelTrf(-10, 0, 0, 0, 0, 0)
+    movePickupWaypoint()
     
