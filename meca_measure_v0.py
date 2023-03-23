@@ -11,6 +11,10 @@ import cv2
 
 robot = mdr.Robot()
 
+tray = []
+for i in range(10):
+    tray.append(tuple((179.350006,-130.494995+(i*20.183333),142,0,90,0)))
+        
 def connectRobot():
     robot.Connect(address='192.168.0.100', disconnect_on_exception=False, enable_synchronous_mode=True)
     print('Connected to robot')  
@@ -26,7 +30,7 @@ def init():
     
     returnHome()
     robot.SetGripperForce(30)
-    robot.SetGripperRange(0,15)
+    robot.SetGripperRange(0,8)
     robot.GripperOpen()   
 def returnHome():
     robot.MoveJoints(0,0,0,0,0,0)
@@ -64,8 +68,8 @@ def moveMeasure ():
 def moveBarcode ():
     robot.MovePose(225,17.5,170,-90,0,90) #keyence measurement way point
 
-def movePickupWaypoint ():
-    robot.MovePose(225,-38,140,0,90,0) #pickup waypoint
+def moveTrayWaypoint ():
+    robot.MovePose(225,-38,150,0,90,0) #pickup waypoint
     
 def measureWires ():
     moveMeasure()
@@ -74,15 +78,26 @@ def measureWires ():
         print(i)
         robot.Delay(0.25)
     
-def pick ():
-    robot.MoveLinRelTrf(10, 0, 0, 0, 0, 0)
+def pickFx(i):
+    robot.MovePose(*(tray[i]))
+    robot.MoveLinRelTrf(60, 0, 0, 0, 0, 0)
     robot.GripperClose()
-    robot.MoveLinRelTrf(-10, 0, 0, 0, 0, 0)
-    movePickupWaypoint()
+    robot.MoveLinRelTrf(-65, 0, 0, 0, 0, 0)
+    moveTrayWaypoint()
     
-def drop ():
-    robot.MoveLinRelTrf(10, 0, 0, 0, 0, 0)
+def placeFx(i):
+    robot.MovePose(*(tray[i]))
+    robot.MoveLinRelTrf(55, 0, 0, 0, 0, 0)
     robot.GripperOpen()
-    robot.MoveLinRelTrf(-10, 0, 0, 0, 0, 0)
-    movePickupWaypoint()
+    robot.MoveLinRelTrf(-55, 0, 0, 0, 0, 0)
+    moveTrayWaypoint()
     
+def pickNplace():
+    for i in range(3):
+        pickFx(i)
+        readBarcode()
+        placeFx(i)
+        
+    
+# Pos 1 [179.350006,-130.494995,142,0,90,0]
+# Pos 10 [179.350006,51.154999,142,0,90,0]
