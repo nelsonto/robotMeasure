@@ -53,14 +53,18 @@ def returnHome():
     print('Robot is zeroed.') 
     
 def disconnectRobot():
-    returnHome()
     robot.DeactivateRobot()
     robot.Disconnect()
-    print('Now disconnected from the robot.')
+    print('Deactivated and disconnected from the robot.')
     
 def resetRobot():
-    robot.ResetError()
-    robot.ResumeMotion()
+    
+    if (robot.GetStatusRobot().error_status == 1):
+        robot.ResetError()
+        robot.ResumeMotion()
+        
+    returnHome()
+    print('Reset and Resume Motion to Robot.')
     
 def readBarcode():
     moveBarcode ()
@@ -134,10 +138,75 @@ def pickNplace():
         readBarcode()
         placeFx(i)
 
+def endProgram():
+    print ('Exiting')
+    
+    if (robot.GetStatusRobot().activation_state == 1):
+        disconnectRobot()
+    
+    if messagebox.askokcancel("Quit", "Robot Disconnected.\nAre you sure you want to quit?"):
+        window.destroy()
 
-connectRobot()    
-init()
-x=0
+def plotData(fixtureID, wireDiameter, x):  
+    figure.clear()
+    plt = figure.add_subplot(111)
 
-while x == 0:
-    pickNplace()
+    # plt.title('Wire Diameter - FX-' + str(fixtureID),color='black',fontsize=10)
+    plt.set_title('Wire Diameter - FX-' + fixtureID.get(),color='black',fontsize=10)
+    plt.plot(x[0],wireDiameter[0],label="wire 1", color="red")
+    plt.plot(x[1],wireDiameter[1],label="wire 2", color="orange")
+    plt.plot(x[2],wireDiameter[2],label="wire 3", color="green")
+    plt.plot(x[3],wireDiameter[3],label="wire 4", color="blue")
+    
+    plt.set_xlabel('X (mm)')
+    plt.set_ylabel('Diameter (mm)')
+    plt.legend(loc="best")
+    plt.grid(color = 'grey', linestyle = '-', linewidth = 0.5)
+    
+    figure.tight_layout()
+
+    canvas.draw()
+    canvas.flush_events()
+    canvas.get_tk_widget().pack()
+    toolbar.update()
+    canvas.get_tk_widget().pack()
+    
+
+window = tk.Tk()
+window.title('TM-X5006 Auto Wire Diameter Measurement')  
+    
+lotID=tk.StringVar()
+wireType=tk.IntVar()
+
+frmInput=tk.Frame()
+frmGraph=tk.Frame()
+
+frmInput.grid(row=1, column=0, sticky="nw",padx=5, pady=5)
+frmGraph.grid(row=1, column=1, sticky="nw",padx=5, pady=5)
+
+figure = Figure(figsize=(10, 8), dpi=100)
+canvas = FigureCanvasTkAgg(figure, master = frmGraph)
+toolbar = NavigationToolbar2Tk(canvas,frmGraph)
+    
+tk.Label(master=frmInput,text="Lot #:", font=('Arial',12), anchor="e", width= 10).grid(row=1, column=0, pady=(20,20))
+entLOT = tk.Entry(master=frmInput, textvariable = lotID, font=('Arial',12), width=12)
+entLOT.grid(row=1, column=1, pady=(20,20), padx=(5,5), ipady=5, ipadx=5)
+
+
+##wireType 0 = working wire, 1 = reference wire
+#tk.Label(master=frmInput,text="Reference Wire", anchor="e", width = 22).grid(row=3, column=0, pady=(0,15))
+entTypeCheck = tk.Checkbutton(master=frmInput, text='Reference', font=('Arial',12), variable=wireType, onvalue=1, offvalue=0)
+entTypeCheck.grid(row=3, column=1, sticky="w", pady=(0,15))
+
+btnConnect = tk.Button(master=frmInput, command = init, text="Connect Robot", width = 17, height=2)
+btnReset = tk.Button(master=frmInput, command = resetRobot, text="Reset Robot", width = 17, height=2)
+btnMeasure = tk.Button(master=frmInput, command = pickNplace, text="Measure Wires", width = 17, height=2, bg="#FFEBB3")
+btnExit= tk.Button(master=frmInput, command = endProgram, text="Disconnect & Exit", width = 17, height=2)
+
+btnMeasure.grid(row=6, column=0, columnspan=2, sticky="e", pady=(0,10))
+btnConnect.grid(row=7, column=0, columnspan=2, sticky="e", pady=(0,10))
+btnReset.grid(row=8, column=0, columnspan=2, sticky="e", pady=(0,10))
+btnExit.grid(row=9, column=0, columnspan=2, sticky="e", pady=(0,10))
+
+window.protocol("WM_DELETE_WINDOW", endProgram)
+window.mainloop()
