@@ -20,8 +20,11 @@ from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationTool
 robot = mdr.Robot()
 
 #initalize variables
-wireDiameter = []
 tray = []
+fixture=[]
+for i in range(10):
+    fixture.append({"fxnumber": 0, "wire1":[0], "wire2":[0], "wire3":[0], "wire4":[0]})
+
 
 # connect to meca500
 def connectRobot():
@@ -58,7 +61,6 @@ def disconnectRobot():
     print('Deactivated and disconnected from the robot.')
     
 def resetRobot():
-    
     if (robot.GetStatusRobot().error_status == 1):
         robot.ResetError()
         robot.ResumeMotion()
@@ -71,20 +73,9 @@ def readBarcode():
     s = socket.socket()
     s.connect(('192.168.0.200', 2001))
     s.send('< >'.encode())
-    print (s.recv(1024).decode())
+    barcode = s.recv(1024).decode()
     s.close()
-    
-def moveCircle (): 
-    moveTrayWaypoint()
-    robot.Delay(0.25)
-    robot.MoveLin(180,-127,140,0,90,0) #top left
-    robot.Delay(0.25)
-    robot.MoveLin(180,56.5,140,0,90,0) #top right
-    robot.Delay(0.25)
-    robot.MoveLin(260,56.5,140,0,90,0) #bottom right
-    robot.Delay(0.25)
-    robot.MoveLin(260,-127,140,0,90,0) #bottom left
-    robot.Delay(0.25)
+    return barcode
 
 def moveMeasure ():
     robot.MovePose(225,140,135,-90,0,90) #keyence measurement way point
@@ -95,28 +86,32 @@ def moveBarcode ():
 def moveTrayWaypoint ():
     robot.MovePose(225,-38,150,0,90,0) #pickup waypoint
     
-def measureWires ():
-    global wireDiameter 
+def readKeyence ():
+    wireDiameter = []
     
-    #moveMeasure()
     s = socket.socket()
     s.connect(('192.168.0.201', 8601))
     s.send("GM,0,0\r".encode())
     rawDiameter = s.recv(2048).decode("utf-8")
-    print("raw measurement is:", rawDiameter)
     
     wireDiameter = rawDiameter.split(',')
     wireDiameter = wireDiameter [2:]
     wireDiameter = [float(i) for i in wireDiameter]    #convert all strings to floats
     wireDiameter = [i for i in wireDiameter if i > 0]  #filter out negative values (no measure from keyences shows up as -9999.99999 mm)
     
-    print("Wire diameters are:", wireDiameter)
-    s.close()
+    print("Wire diameter:", wireDiameter)
+    s.close()    
+    return wireDiameter
     
-    # for i in range(4):
-    #     robot.MoveLinRelTrf(0, 0, 9.5, 0, 0, 0)
-    #     print(i)
-    #     robot.Delay(0.25)
+def measureWires (i):
+    global fixture
+    moveMeasure()
+#    robot.MoveLinRelTrf(0, 0, 0, 0, 0, 0)  ## move into first wire position
+    for j in range (4):
+        robot.MoveLinRelTrf(0, 0, 9.5, 0, 0, 0)
+        fixture[i]["wire"+str(j)]= readKeyence()
+        robot.Delay(0.25)
+        
     
 def pickFx(i):
     robot.MovePose(*(tray[i]))
@@ -133,9 +128,11 @@ def placeFx(i):
     moveTrayWaypoint()
     
 def pickNplace():
+    global fixture
     for i in range(10):
         pickFx(i)
-        readBarcode()
+        fixture[i]["fxnumber"] = readBarcode()
+        measureWires(i)
         placeFx(i)
 
 def endProgram():
