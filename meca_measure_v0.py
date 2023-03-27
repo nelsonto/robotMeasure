@@ -12,6 +12,7 @@ Created on Mon Mar 20 14:53:54 2023
 import mecademicpy.robot as mdr
 import socket
 import cv2
+import time
 import tkinter as tk
 from tkinter import messagebox
 from matplotlib.figure import Figure
@@ -56,6 +57,7 @@ def returnHome():
     print('Robot is zeroed.') 
     
 def disconnectRobot():
+    robot.WaitIdle()
     robot.DeactivateRobot()
     robot.Disconnect()
     print('Deactivated and disconnected from the robot.')
@@ -102,6 +104,24 @@ def readKeyence ():
     print("Wire diameter:", wireDiameter)
     s.close()    
     return wireDiameter
+
+def recordData(i):
+    global fixture
+    numSamples = 100    #Number of sampling points
+    rawstring = ""
+    for i in range(numSamples):
+        rawstring = rawstring +",Raw"+str(i+1)
+        
+    headerFormat = "DateTime,OperatorID, EquipmentID, LotID,SensorNumber,FixtureID,SensorID,TipDiameter"+ rawstring +"\n"
+    file = open ("Data\wireDiameter-" + time.strftime("%Y%m%d-%H%M%S") +"_" + fixture[i]["fxnumber"] + ".csv", 'w')
+    file.write(headerFormat)
+    
+    for j in range (4):
+        file.write(time.strftime('%m/%d/%y %H:%M,') + 'N/A'+ ',' + 'EQ-318 TMX,' + lotID.get() + ',' + str(i+1) + ',' + fixture[i]["fxnumber"] + ',' + fixture[i]["fxnumber"] + '-' + str(j+1) + ',' + 'TipDiameter,')
+        file.write (fixture[i]["wire"+str(j)])
+        file.write('\n')
+    
+    file.close()
     
 def measureWires (i):
     global fixture
@@ -109,13 +129,16 @@ def measureWires (i):
 #    robot.MoveLinRelTrf(0, 0, 0, 0, 0, 0)  ## move into first wire position
     for j in range (4):
         robot.MoveLinRelTrf(0, 0, 9.5, 0, 0, 0)
-        fixture[i]["wire"+str(j)]= readKeyence()
+        fixture[i]["wire"+str(j)]=  print ("readKeyence") #readKeyence()
         robot.Delay(0.25)
-        
+    
+    recordData(i);
+#    robot.MoveLinRelTrf(0, 0, 0, 0, 0, 0)  ## return to keyence waypoint   
     
 def pickFx(i):
     robot.MovePose(*(tray[i]))
     robot.MoveLinRelTrf(59, 0, 0, 0, 0, 0)
+    robot.WaitIdle()
     robot.GripperClose()
     robot.MoveLinRelTrf(-65, 0, 0, 0, 0, 0)
     moveTrayWaypoint()
@@ -123,6 +146,7 @@ def pickFx(i):
 def placeFx(i):
     robot.MovePose(*(tray[i]))
     robot.MoveLinRelTrf(57, 0, 0, 0, 0, 0)
+    robot.WaitIdle()
     robot.GripperOpen()
     robot.MoveLinRelTrf(-57, 0, 0, 0, 0, 0)
     moveTrayWaypoint()
@@ -132,28 +156,34 @@ def pickNplace():
     for i in range(10):
         pickFx(i)
         fixture[i]["fxnumber"] = readBarcode()
-        measureWires(i)
+        print ("readBarcode for position: ", i, " is ", fixture[i]["fxnumber"])
+        if fixture[i]["fxnumber"] != 'NOREAD':
+            measureWires(i)
         placeFx(i)
 
-def endProgram():
-    print ('Exiting')
-    
+def endProgram():  
+    if messagebox.askokcancel("Quit", "Robot Disconnected.\nAre you sure you want to quit?"):
+        window.destroy()
+        
     if (robot.GetStatusRobot().activation_state == 1):
         disconnectRobot()
     
-    if messagebox.askokcancel("Quit", "Robot Disconnected.\nAre you sure you want to quit?"):
-        window.destroy()
+    print ('Exiting')
 
-def plotData(fixtureID, wireDiameter, x):  
+def plotData(i):
+    global fixture
+    x = [[],[],[],[]]
+    for i in range (100):
+        x[i].append(0.03*i)
+    
     figure.clear()
     plt = figure.add_subplot(111)
 
-    # plt.title('Wire Diameter - FX-' + str(fixtureID),color='black',fontsize=10)
-    plt.set_title('Wire Diameter - FX-' + fixtureID.get(),color='black',fontsize=10)
-    plt.plot(x[0],wireDiameter[0],label="wire 1", color="red")
-    plt.plot(x[1],wireDiameter[1],label="wire 2", color="orange")
-    plt.plot(x[2],wireDiameter[2],label="wire 3", color="green")
-    plt.plot(x[3],wireDiameter[3],label="wire 4", color="blue")
+    plt.set_title('Wire Diameter - FX-' + fixture[i]["fxnumber"],color='black',fontsize=10)
+    plt.plot(x[0],fixture[i]["wire1"],label="wire 1", color="red")
+    plt.plot(x[1],fixture[i]["wire2"],label="wire 2", color="orange")
+    plt.plot(x[2],fixture[i]["wire3"],label="wire 3", color="green")
+    plt.plot(x[3],fixture[i]["wire4"],label="wire 4", color="blue")
     
     plt.set_xlabel('X (mm)')
     plt.set_ylabel('Diameter (mm)')
