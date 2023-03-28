@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Mar 20 14:53:54 2023
+V0: EQ-318 - Mecademic Robot + Keyence TMX
 
-@author: NelsonChunManTo
 """
 ## IP addresses:
 # Mecademic meca500 robot - 192.168.0.100
@@ -24,7 +23,7 @@ robot = mdr.Robot()
 tray = []
 fixture=[]
 for i in range(10):
-    fixture.append({"fxnumber": 0, "wire1":[0], "wire2":[0], "wire3":[0], "wire4":[0]})
+    fixture.append({"fxnumber": 0, "wire0":[0], "wire1":[0], "wire2":[0], "wire3":[0]})
 
 
 # connect to meca500
@@ -50,8 +49,9 @@ def init():
 def initTrayPositions():
     global tray
     for i in range(10):
-        tray.append(tuple((179.350006,-130.494995+(i*20.183333),142,0,90,0)))
-    
+        tray.append(tuple((178.5,-130+(i*20.183333),142,0,90,0)))
+
+
 def returnHome():
     robot.MoveJoints(0,0,0,0,0,0)
     print('Robot is zeroed.') 
@@ -80,7 +80,7 @@ def readBarcode():
     return barcode
 
 def moveMeasure ():
-    robot.MovePose(225,140,135,-90,0,90) #keyence measurement way point
+    robot.MovePose(150,87,160,-90,0,90) #keyence measurement way point
     
 def moveBarcode ():
     robot.MovePose(225,17.5,170,-90,0,90) #keyence measurement way point
@@ -109,16 +109,20 @@ def recordData(i):
     global fixture
     numSamples = 100    #Number of sampling points
     rawstring = ""
-    for i in range(numSamples):
-        rawstring = rawstring +",Raw"+str(i+1)
+    for j in range(numSamples):
+        rawstring = rawstring +",Raw"+str(j+1)
         
     headerFormat = "DateTime,OperatorID, EquipmentID, LotID,SensorNumber,FixtureID,SensorID,TipDiameter"+ rawstring +"\n"
-    file = open ("Data\wireDiameter-" + time.strftime("%Y%m%d-%H%M%S") +"_" + fixture[i]["fxnumber"] + ".csv", 'w')
+    file = open ("Data\wireDiameter-" + time.strftime("%Y%m%d-%H%M%S") +"_" + str(fixture[i]["fxnumber"]) + ".csv", 'w')
     file.write(headerFormat)
     
     for j in range (4):
-        file.write(time.strftime('%m/%d/%y %H:%M,') + 'N/A'+ ',' + 'EQ-318 TMX,' + lotID.get() + ',' + str(i+1) + ',' + fixture[i]["fxnumber"] + ',' + fixture[i]["fxnumber"] + '-' + str(j+1) + ',' + 'TipDiameter,')
-        file.write (fixture[i]["wire"+str(j)])
+        try:
+            tipDiameter = max(fixture[i]["wire"+str(j)][0:25])
+        except:
+            tipDiameter = 0
+        file.write(time.strftime('%m/%d/%y %H:%M,') + 'N/A'+ ',' + 'EQ-318 TMX,' + lotID.get() + ',' + str(j+1) + ',' + str(fixture[i]["fxnumber"]) + ',' + str(fixture[i]["fxnumber"]) + '-' + str(j+1) + ',' + str(tipDiameter) + ',')
+        file.write (str(fixture[i]["wire"+str(j)])[1:-1])
         file.write('\n')
     
     file.close()
@@ -126,14 +130,18 @@ def recordData(i):
 def measureWires (i):
     global fixture
     moveMeasure()
-#    robot.MoveLinRelTrf(0, 0, 0, 0, 0, 0)  ## move into first wire position
-    for j in range (4):
-        robot.MoveLinRelTrf(0, 0, 9.5, 0, 0, 0)
-        fixture[i]["wire"+str(j)]=  print ("readKeyence") #readKeyence()
-        robot.Delay(0.25)
     
-    recordData(i);
-#    robot.MoveLinRelTrf(0, 0, 0, 0, 0, 0)  ## return to keyence waypoint   
+    if (wireType.get() == 0):
+        robot.MovePose(150,142.9,152.625,-90,0,90)      #pre wire 1 position for reference wire
+    else:
+        robot.MovePose(150,142.9,157.625,-90,0,90)     #pre wire 1 position for working wire
+
+    for j in range (4): 
+        robot.MoveLinRelTrf(0, 0, 9.25, 0, 0, 0)
+        robot.Delay(0.75)
+        fixture[i]["wire"+str(j)]= readKeyence() #print ("readKeyence for fixture position: ", i)
+    moveMeasure()
+    recordData(i)  
     
 def pickFx(i):
     robot.MovePose(*(tray[i]))
@@ -159,44 +167,46 @@ def pickNplace():
         print ("readBarcode for position: ", i, " is ", fixture[i]["fxnumber"])
         if fixture[i]["fxnumber"] != 'NOREAD':
             measureWires(i)
+            # plotData(i)
         placeFx(i)
 
 def endProgram():  
     if messagebox.askokcancel("Quit", "Robot Disconnected.\nAre you sure you want to quit?"):
         window.destroy()
-        
-    if (robot.GetStatusRobot().activation_state == 1):
-        disconnectRobot()
+        if (robot.GetStatusRobot().activation_state == 1):
+            disconnectRobot()
+            print ('Disconnecting Robot')
+        print ('Closing Program')
     
-    print ('Exiting')
+    
 
-def plotData(i):
-    global fixture
-    x = [[],[],[],[]]
-    for i in range (100):
-        x[i].append(0.03*i)
+# def plotData(i):
+#     global fixture
+#     x = [[],[],[],[]]
+#     for j in range (2):
+#         x[i].append(0.03*j)
     
-    figure.clear()
-    plt = figure.add_subplot(111)
+#     figure.clear()
+#     plt = figure.add_subplot(111)
 
-    plt.set_title('Wire Diameter - FX-' + fixture[i]["fxnumber"],color='black',fontsize=10)
-    plt.plot(x[0],fixture[i]["wire1"],label="wire 1", color="red")
-    plt.plot(x[1],fixture[i]["wire2"],label="wire 2", color="orange")
-    plt.plot(x[2],fixture[i]["wire3"],label="wire 3", color="green")
-    plt.plot(x[3],fixture[i]["wire4"],label="wire 4", color="blue")
+#     plt.set_title('Wire Diameter - FX-' + str(fixture[i]["fxnumber"]),color='black',fontsize=10)
+#     plt.plot(x[0],fixture[i]["wire1"],label="wire 1", color="red")
+#     plt.plot(x[1],fixture[i]["wire2"],label="wire 2", color="orange")
+#     plt.plot(x[2],fixture[i]["wire3"],label="wire 3", color="green")
+#     plt.plot(x[3],fixture[i]["wire4"],label="wire 4", color="blue")
     
-    plt.set_xlabel('X (mm)')
-    plt.set_ylabel('Diameter (mm)')
-    plt.legend(loc="best")
-    plt.grid(color = 'grey', linestyle = '-', linewidth = 0.5)
+#     plt.set_xlabel('X (mm)')
+#     plt.set_ylabel('Diameter (mm)')
+#     plt.legend(loc="best")
+#     plt.grid(color = 'grey', linestyle = '-', linewidth = 0.5)
     
-    figure.tight_layout()
+#     figure.tight_layout()
 
-    canvas.draw()
-    canvas.flush_events()
-    canvas.get_tk_widget().pack()
-    toolbar.update()
-    canvas.get_tk_widget().pack()
+#     canvas.draw()
+#     canvas.flush_events()
+#     canvas.get_tk_widget().pack()
+#     toolbar.update()
+#     canvas.get_tk_widget().pack()
     
 
 window = tk.Tk()
@@ -219,9 +229,7 @@ tk.Label(master=frmInput,text="Lot #:", font=('Arial',12), anchor="e", width= 10
 entLOT = tk.Entry(master=frmInput, textvariable = lotID, font=('Arial',12), width=12)
 entLOT.grid(row=1, column=1, pady=(20,20), padx=(5,5), ipady=5, ipadx=5)
 
-
 ##wireType 0 = working wire, 1 = reference wire
-#tk.Label(master=frmInput,text="Reference Wire", anchor="e", width = 22).grid(row=3, column=0, pady=(0,15))
 entTypeCheck = tk.Checkbutton(master=frmInput, text='Reference', font=('Arial',12), variable=wireType, onvalue=1, offvalue=0)
 entTypeCheck.grid(row=3, column=1, sticky="w", pady=(0,15))
 
@@ -229,11 +237,13 @@ btnConnect = tk.Button(master=frmInput, command = init, text="Connect Robot", wi
 btnReset = tk.Button(master=frmInput, command = resetRobot, text="Reset Robot", width = 17, height=2)
 btnMeasure = tk.Button(master=frmInput, command = pickNplace, text="Measure Wires", width = 17, height=2, bg="#FFEBB3")
 btnExit= tk.Button(master=frmInput, command = endProgram, text="Disconnect & Exit", width = 17, height=2)
+# btnPlt= tk.Button(master=frmInput, command = plotData(1), text="PlotGraphs", width = 17, height=2)
 
 btnMeasure.grid(row=6, column=0, columnspan=2, sticky="e", pady=(0,10))
 btnConnect.grid(row=7, column=0, columnspan=2, sticky="e", pady=(0,10))
 btnReset.grid(row=8, column=0, columnspan=2, sticky="e", pady=(0,10))
 btnExit.grid(row=9, column=0, columnspan=2, sticky="e", pady=(0,10))
+# btnPlt.grid(row=9, column=0, columnspan=2, sticky="e", pady=(0,10))
 
 window.protocol("WM_DELETE_WINDOW", endProgram)
 window.mainloop()
