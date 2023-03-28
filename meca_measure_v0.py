@@ -10,7 +10,6 @@ V0: EQ-318 - Mecademic Robot + Keyence TMX
 
 import mecademicpy.robot as mdr
 import socket
-import cv2
 import time
 import tkinter as tk
 from tkinter import messagebox
@@ -20,8 +19,8 @@ from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationTool
 robot = mdr.Robot()
 
 #initalize variables
-tray = []
-fixture=[]
+# tray = []
+# fixture=[]
 for i in range(10):
     fixture.append({"fxnumber": 0, "wire0":[0], "wire1":[0], "wire2":[0], "wire3":[0]})
 
@@ -180,33 +179,34 @@ def endProgram():
     
     
 
-# def plotData(i):
-#     global fixture
-#     x = [[],[],[],[]]
-#     for j in range (2):
-#         x[i].append(0.03*j)
+def plotData():
+    global fixture
+    x = [[],[],[],[]]
+    for i in range (4):
+        for j in range (len(fixture[i]["wire"+str(i)])):
+            x[i].append(0.03*j)
     
-#     figure.clear()
-#     plt = figure.add_subplot(111)
-
-#     plt.set_title('Wire Diameter - FX-' + str(fixture[i]["fxnumber"]),color='black',fontsize=10)
-#     plt.plot(x[0],fixture[i]["wire1"],label="wire 1", color="red")
-#     plt.plot(x[1],fixture[i]["wire2"],label="wire 2", color="orange")
-#     plt.plot(x[2],fixture[i]["wire3"],label="wire 3", color="green")
-#     plt.plot(x[3],fixture[i]["wire4"],label="wire 4", color="blue")
     
-#     plt.set_xlabel('X (mm)')
-#     plt.set_ylabel('Diameter (mm)')
-#     plt.legend(loc="best")
-#     plt.grid(color = 'grey', linestyle = '-', linewidth = 0.5)
+    for k in range (10):
+        plt = figure.add_subplot(2,5,k+1)
     
-#     figure.tight_layout()
-
-#     canvas.draw()
-#     canvas.flush_events()
-#     canvas.get_tk_widget().pack()
-#     toolbar.update()
-#     canvas.get_tk_widget().pack()
+        plt.set_title('Wire Diameter - ' + str(fixture[k]["fxnumber"]),color='black',fontsize=10)
+        plt.plot(x[0],fixture[i]["wire0"],label="wire 1", color="red")
+        plt.plot(x[1],fixture[i]["wire1"],label="wire 2", color="orange")
+        plt.plot(x[2],fixture[i]["wire2"],label="wire 3", color="green")
+        plt.plot(x[3],fixture[i]["wire3"],label="wire 4", color="blue")
+        
+        plt.set_xlabel('X (mm)')
+        plt.set_ylabel('Diameter (mm)')
+        plt.legend(loc="best")
+        plt.grid(color = 'grey', linestyle = '-', linewidth = 0.5)
+    
+    figure.tight_layout()
+    canvas.draw()
+    canvas.flush_events()
+    canvas.get_tk_widget().pack()
+    toolbar.update()
+    canvas.get_tk_widget().pack()
     
 
 window = tk.Tk()
@@ -221,7 +221,7 @@ frmGraph=tk.Frame()
 frmInput.grid(row=1, column=0, sticky="nw",padx=5, pady=5)
 frmGraph.grid(row=1, column=1, sticky="nw",padx=5, pady=5)
 
-figure = Figure(figsize=(10, 8), dpi=100)
+figure = Figure(figsize=(15, 8), dpi=100)
 canvas = FigureCanvasTkAgg(figure, master = frmGraph)
 toolbar = NavigationToolbar2Tk(canvas,frmGraph)
     
@@ -237,13 +237,13 @@ btnConnect = tk.Button(master=frmInput, command = init, text="Connect Robot", wi
 btnReset = tk.Button(master=frmInput, command = resetRobot, text="Reset Robot", width = 17, height=2)
 btnMeasure = tk.Button(master=frmInput, command = pickNplace, text="Measure Wires", width = 17, height=2, bg="#FFEBB3")
 btnExit= tk.Button(master=frmInput, command = endProgram, text="Disconnect & Exit", width = 17, height=2)
-# btnPlt= tk.Button(master=frmInput, command = plotData(1), text="PlotGraphs", width = 17, height=2)
+btnPlt= tk.Button(master=frmInput, command = plotData, text="PlotGraphs", width = 17, height=2)
 
 btnMeasure.grid(row=6, column=0, columnspan=2, sticky="e", pady=(0,10))
 btnConnect.grid(row=7, column=0, columnspan=2, sticky="e", pady=(0,10))
 btnReset.grid(row=8, column=0, columnspan=2, sticky="e", pady=(0,10))
 btnExit.grid(row=9, column=0, columnspan=2, sticky="e", pady=(0,10))
-# btnPlt.grid(row=9, column=0, columnspan=2, sticky="e", pady=(0,10))
+btnPlt.grid(row=10, column=0, columnspan=2, sticky="e", pady=(0,10))
 
 window.protocol("WM_DELETE_WINDOW", endProgram)
 window.mainloop()
