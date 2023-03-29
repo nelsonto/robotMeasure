@@ -21,6 +21,9 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg)
 
 robot = mdr.Robot()
+
+#format graphs
+plt.style.use('default')
 plt.rcParams.update({'font.size': 8})
 
 #Make a data folder if one doesn't exist
@@ -52,13 +55,14 @@ def init():
     returnHome()
     robot.SetGripperForce(30)
     robot.SetGripperRange(0,8)
+    robot.SetJointVel(50)
     robot.GripperOpen()
     initTrayPositions()
 
 def initTrayPositions():
     global tray
     for i in range(10):
-        tray.append(tuple((178.5,-130+(i*20.183333),142,0,90,0)))
+        tray.append(tuple((178.75+(i*-0.11111),-130+(i*20.183333),142,0,90,0)))
 
 def returnHome():
     robot.MoveJoints(0,0,0,0,0,0)
@@ -177,8 +181,8 @@ def pickNplace():
         print ("readBarcode for position: ", i, " is ", fixture[i]["fxnumber"])
         if fixture[i]["fxnumber"] != 'NOREAD':
             measureWires(i)
-            plotData()
         placeFx(i)
+    plotData()
 
 def endProgram():  
     if messagebox.askokcancel("Quit", "Are you sure you want to quit?"):
@@ -192,25 +196,28 @@ def plotData():
     global fixture
     global windowSize
     
-    x = [[],[],[],[]]
-    for i in range (4):
-        for j in range (len(fixture[i]["wire"+str(i)])):
-            x[i].append(windowSize*j)
-    
+    figure.clf()
+        
     for k in range (len(fixture)):
-
-        plt = figure.add_subplot(3,4,k+1)
-        
-        plt.set_title(str(fixture[k]["fxnumber"]),color='black',fontsize=10)
-        plt.plot(x[0],fixture[k]["wire0"],label="1", color="red")
-        plt.plot(x[1],fixture[k]["wire1"],label="2", color="orange")
-        plt.plot(x[2],fixture[k]["wire2"],label="3", color="green")
-        plt.plot(x[3],fixture[k]["wire3"],label="4", color="blue")
-        
-        plt.set_xlabel('X (mm)')
-        plt.set_ylabel('Diameter (mm)')
-        plt.legend(loc="best")
-        plt.grid(color = 'grey', linestyle="--", linewidth = 0.25)
+        print("now plotting:", k)
+        if fixture[k]["fxnumber"]!= 0:
+            plt = figure.add_subplot(3,4,k+1)
+            x = [[],[],[],[]]
+            
+            for i in range (4):
+                for j in range (len(fixture[k]["wire"+str(i)])):
+                    x[i].append(windowSize*j)
+            
+            plt.set_title(str(fixture[k]["fxnumber"]),color='black',fontsize=10)
+            plt.plot(x[0],fixture[k]["wire0"],label="1")
+            plt.plot(x[1],fixture[k]["wire1"],label="2")
+            plt.plot(x[2],fixture[k]["wire2"],label="3")
+            plt.plot(x[3],fixture[k]["wire3"],label="4")
+            
+            plt.set_xlabel('X (mm)')
+            plt.set_ylabel('Diameter (mm)')
+            plt.legend(loc="best")
+            plt.grid(color = 'grey', linestyle="--", linewidth = 0.25)
     
     canvas.draw()
     canvas.flush_events()
