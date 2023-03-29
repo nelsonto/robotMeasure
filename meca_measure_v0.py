@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
+3/28/2023
 V0: EQ-318 - Mecademic Robot + Keyence TMX
+- first deployed for use in production cleanroom
 
 """
 ## IP addresses:
@@ -8,6 +10,7 @@ V0: EQ-318 - Mecademic Robot + Keyence TMX
 # Omron Hawkeye Barcode Reader V430-F - 192.168.0.200, port 2001
 # Keyence TM-X5000 - 192.168.0.201, port 8601
 
+import os
 import mecademicpy.robot as mdr
 import socket
 import time
@@ -20,17 +23,22 @@ from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg)
 robot = mdr.Robot()
 plt.rcParams.update({'font.size': 8})
 
-#initalize variables
+#Make a data folder if one doesn't exist
+if not os.path.exists('Data'):
+   os.makedirs('Data')
+   
+#initalize system variables
+windowSize = 0.03   #interval width of each scanned region
+numSamples = 100    #Number of sampling points
 tray = []
 fixture=[]
 for i in range(10):
     fixture.append({"fxnumber": 0, "wire0":[0], "wire1":[0], "wire2":[0], "wire3":[0]})
 
-
 # connect to meca500
 def connectRobot():
-    robot.Connect(address='192.168.0.100', disconnect_on_exception=False, enable_synchronous_mode=True)
-    print('Connected to robot') 
+    robot.Connect(address='192.168.0.100', disconnect_on_exception=True, enable_synchronous_mode=True)
+    print('Connected to robot')
 
 # initialize robot
 def init():
@@ -52,13 +60,13 @@ def initTrayPositions():
     for i in range(10):
         tray.append(tuple((178.5,-130+(i*20.183333),142,0,90,0)))
 
-
 def returnHome():
     robot.MoveJoints(0,0,0,0,0,0)
     print('Robot is zeroed.') 
     
 def disconnectRobot():
     robot.WaitIdle()
+    returnHome()
     robot.DeactivateRobot()
     robot.Disconnect()
     print('Deactivated and disconnected from the robot.')
@@ -108,7 +116,8 @@ def readKeyence ():
 
 def recordData(i):
     global fixture
-    numSamples = 100    #Number of sampling points
+    global numSamples
+
     rawstring = ""
     for j in range(numSamples):
         rawstring = rawstring +",Raw"+str(j+1)
@@ -168,11 +177,11 @@ def pickNplace():
         print ("readBarcode for position: ", i, " is ", fixture[i]["fxnumber"])
         if fixture[i]["fxnumber"] != 'NOREAD':
             measureWires(i)
-            # plotData(i)
+            plotData()
         placeFx(i)
 
 def endProgram():  
-    if messagebox.askokcancel("Quit", "Robot Disconnected.\nAre you sure you want to quit?"):
+    if messagebox.askokcancel("Quit", "Are you sure you want to quit?"):
         window.destroy()
         if (robot.GetStatusRobot().activation_state == 1):
             disconnectRobot()
@@ -181,10 +190,12 @@ def endProgram():
     
 def plotData():
     global fixture
+    global windowSize
+    
     x = [[],[],[],[]]
     for i in range (4):
         for j in range (len(fixture[i]["wire"+str(i)])):
-            x[i].append(0.03*j)
+            x[i].append(windowSize*j)
     
     for k in range (len(fixture)):
 
@@ -204,7 +215,6 @@ def plotData():
     canvas.draw()
     canvas.flush_events()
     canvas.get_tk_widget().pack()
-    # toolbar.update()
 
 window = tk.Tk()
 window.title('TM-X5006 Auto Wire Diameter Measurement')  
@@ -222,7 +232,7 @@ figure = Figure(figsize=(13.5, 9), dpi=96, tight_layout=True)
 canvas = FigureCanvasTkAgg(figure, master = frmGraph)
     
 tk.Label(master=frmInput,text="Lot #:", font=('Arial',12), anchor="e", width= 4).grid(row=1, column=0, pady=(20,20))
-entLOT = tk.Entry(master=frmInput, textvariable = lotID, font=('Arial',12), width=12)
+entLOT = tk.Entry(master=frmInput, textvariable = lotID, font=('Arial',12), width=12, justify='center')
 entLOT.grid(row=1, column=1, pady=(20,20), padx=(5,5), ipady=5, ipadx=5)
 
 entTypeCheck = tk.Checkbutton(master=frmInput, text='Reference', font=('Arial',12), variable=wireType, onvalue=1, offvalue=0) #wireType 0 = working wire, 1 = reference wire
@@ -232,13 +242,13 @@ btnConnect = tk.Button(master=frmInput, command = init, text="Connect Robot", wi
 btnReset = tk.Button(master=frmInput, command = resetRobot, text="Reset Robot", width = 18, height=2)
 btnMeasure = tk.Button(master=frmInput, command = pickNplace, text="Measure Wires", width = 18, height=2, bg="#FFEBB3")
 btnExit= tk.Button(master=frmInput, command = endProgram, text="Disconnect & Exit", width = 18, height=2)
-btnPlt= tk.Button(master=frmInput, command = plotData, text="PlotGraphs", width = 18, height=2)
+# btnPlt= tk.Button(master=frmInput, command = plotData, text="PlotGraphs", width = 18, height=2)
 
 btnMeasure.grid(row=6, column=0, columnspan=2, sticky="e", pady=(0,10))
 btnConnect.grid(row=7, column=0, columnspan=2, sticky="e", pady=(0,10))
 btnReset.grid(row=8, column=0, columnspan=2, sticky="e", pady=(0,10))
 btnExit.grid(row=9, column=0, columnspan=2, sticky="e", pady=(0,10))
-btnPlt.grid(row=10, column=0, columnspan=2, sticky="e", pady=(0,10))
+# btnPlt.grid(row=10, column=0, columnspan=2, sticky="e", pady=(0,10))
 
 window.protocol("WM_DELETE_WINDOW", endProgram)
 window.mainloop()
