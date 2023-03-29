@@ -11,16 +11,18 @@ V0: EQ-318 - Mecademic Robot + Keyence TMX
 import mecademicpy.robot as mdr
 import socket
 import time
+import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter import messagebox
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg)
 
 robot = mdr.Robot()
+plt.rcParams.update({'font.size': 8})
 
 #initalize variables
-# tray = []
-# fixture=[]
+tray = []
+fixture=[]
 for i in range(10):
     fixture.append({"fxnumber": 0, "wire0":[0], "wire1":[0], "wire2":[0], "wire3":[0]})
 
@@ -117,7 +119,7 @@ def recordData(i):
     
     for j in range (4):
         try:
-            tipDiameter = max(fixture[i]["wire"+str(j)][0:25])
+            tipDiameter = max(fixture[i]["wire"+str(j)][0:25])  #only look for the max diameter in the first 0.75mm of the wire
         except:
             tipDiameter = 0
         file.write(time.strftime('%m/%d/%y %H:%M,') + 'N/A'+ ',' + 'EQ-318 TMX,' + lotID.get() + ',' + str(j+1) + ',' + str(fixture[i]["fxnumber"]) + ',' + str(fixture[i]["fxnumber"]) + '-' + str(j+1) + ',' + str(tipDiameter) + ',')
@@ -131,14 +133,14 @@ def measureWires (i):
     moveMeasure()
     
     if (wireType.get() == 0):
-        robot.MovePose(150,142.9,152.625,-90,0,90)      #pre wire 1 position for reference wire
+        robot.MovePose(150,142.9,152.625,-90,0,90)     #pre wire 1 position for reference wire
     else:
         robot.MovePose(150,142.9,157.625,-90,0,90)     #pre wire 1 position for working wire
 
     for j in range (4): 
         robot.MoveLinRelTrf(0, 0, 9.25, 0, 0, 0)
         robot.Delay(0.75)
-        fixture[i]["wire"+str(j)]= readKeyence() #print ("readKeyence for fixture position: ", i)
+        fixture[i]["wire"+str(j)]= readKeyence()
     moveMeasure()
     recordData(i)  
     
@@ -177,8 +179,6 @@ def endProgram():
             print ('Disconnecting Robot')
         print ('Closing Program')
     
-    
-
 def plotData():
     global fixture
     x = [[],[],[],[]]
@@ -186,28 +186,25 @@ def plotData():
         for j in range (len(fixture[i]["wire"+str(i)])):
             x[i].append(0.03*j)
     
-    
-    for k in range (10):
-        plt = figure.add_subplot(2,5,k+1)
-    
-        plt.set_title('Wire Diameter - ' + str(fixture[k]["fxnumber"]),color='black',fontsize=10)
-        plt.plot(x[0],fixture[i]["wire0"],label="wire 1", color="red")
-        plt.plot(x[1],fixture[i]["wire1"],label="wire 2", color="orange")
-        plt.plot(x[2],fixture[i]["wire2"],label="wire 3", color="green")
-        plt.plot(x[3],fixture[i]["wire3"],label="wire 4", color="blue")
+    for k in range (len(fixture)):
+
+        plt = figure.add_subplot(3,4,k+1)
+        
+        plt.set_title(str(fixture[k]["fxnumber"]),color='black',fontsize=10)
+        plt.plot(x[0],fixture[k]["wire0"],label="1", color="red")
+        plt.plot(x[1],fixture[k]["wire1"],label="2", color="orange")
+        plt.plot(x[2],fixture[k]["wire2"],label="3", color="green")
+        plt.plot(x[3],fixture[k]["wire3"],label="4", color="blue")
         
         plt.set_xlabel('X (mm)')
         plt.set_ylabel('Diameter (mm)')
         plt.legend(loc="best")
-        plt.grid(color = 'grey', linestyle = '-', linewidth = 0.5)
+        plt.grid(color = 'grey', linestyle="--", linewidth = 0.25)
     
-    figure.tight_layout()
     canvas.draw()
     canvas.flush_events()
     canvas.get_tk_widget().pack()
-    toolbar.update()
-    canvas.get_tk_widget().pack()
-    
+    # toolbar.update()
 
 window = tk.Tk()
 window.title('TM-X5006 Auto Wire Diameter Measurement')  
@@ -218,26 +215,24 @@ wireType=tk.IntVar()
 frmInput=tk.Frame()
 frmGraph=tk.Frame()
 
-frmInput.grid(row=1, column=0, sticky="nw",padx=5, pady=5)
+frmInput.grid(row=1, column=0, sticky="nw",padx=20, pady=5)
 frmGraph.grid(row=1, column=1, sticky="nw",padx=5, pady=5)
 
-figure = Figure(figsize=(15, 8), dpi=100)
+figure = Figure(figsize=(13.5, 9), dpi=96, tight_layout=True)
 canvas = FigureCanvasTkAgg(figure, master = frmGraph)
-toolbar = NavigationToolbar2Tk(canvas,frmGraph)
     
-tk.Label(master=frmInput,text="Lot #:", font=('Arial',12), anchor="e", width= 10).grid(row=1, column=0, pady=(20,20))
+tk.Label(master=frmInput,text="Lot #:", font=('Arial',12), anchor="e", width= 4).grid(row=1, column=0, pady=(20,20))
 entLOT = tk.Entry(master=frmInput, textvariable = lotID, font=('Arial',12), width=12)
 entLOT.grid(row=1, column=1, pady=(20,20), padx=(5,5), ipady=5, ipadx=5)
 
-##wireType 0 = working wire, 1 = reference wire
-entTypeCheck = tk.Checkbutton(master=frmInput, text='Reference', font=('Arial',12), variable=wireType, onvalue=1, offvalue=0)
+entTypeCheck = tk.Checkbutton(master=frmInput, text='Reference', font=('Arial',12), variable=wireType, onvalue=1, offvalue=0) #wireType 0 = working wire, 1 = reference wire
 entTypeCheck.grid(row=3, column=1, sticky="w", pady=(0,15))
 
-btnConnect = tk.Button(master=frmInput, command = init, text="Connect Robot", width = 17, height=2)
-btnReset = tk.Button(master=frmInput, command = resetRobot, text="Reset Robot", width = 17, height=2)
-btnMeasure = tk.Button(master=frmInput, command = pickNplace, text="Measure Wires", width = 17, height=2, bg="#FFEBB3")
-btnExit= tk.Button(master=frmInput, command = endProgram, text="Disconnect & Exit", width = 17, height=2)
-btnPlt= tk.Button(master=frmInput, command = plotData, text="PlotGraphs", width = 17, height=2)
+btnConnect = tk.Button(master=frmInput, command = init, text="Connect Robot", width = 18, height=2)
+btnReset = tk.Button(master=frmInput, command = resetRobot, text="Reset Robot", width = 18, height=2)
+btnMeasure = tk.Button(master=frmInput, command = pickNplace, text="Measure Wires", width = 18, height=2, bg="#FFEBB3")
+btnExit= tk.Button(master=frmInput, command = endProgram, text="Disconnect & Exit", width = 18, height=2)
+btnPlt= tk.Button(master=frmInput, command = plotData, text="PlotGraphs", width = 18, height=2)
 
 btnMeasure.grid(row=6, column=0, columnspan=2, sticky="e", pady=(0,10))
 btnConnect.grid(row=7, column=0, columnspan=2, sticky="e", pady=(0,10))
