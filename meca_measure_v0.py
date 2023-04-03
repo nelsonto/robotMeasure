@@ -137,7 +137,7 @@ def recordData(i):
         except:
             tipDiameter = 0
         
-        fixture[i]["skiveWidth"], fixture[i]["tipLength"] = skiveMeasure(fixture[i]["wire"+str(j)])
+        fixture[i]["skiveWidth_wire"+str(j)], fixture[i]["tipLength__wire"+str(j)] = skiveMeasure(fixture[i]["wire"+str(j)])
         
         file.write(time.strftime('%m/%d/%y %H:%M,') + 'N/A'+ ',' + 'EQ-318 TMX,' + lotID.get() + ',' + str(j+1) + ',' + str(fixture[i]["fxnumber"]) + ',' + str(fixture[i]["fxnumber"]) + '-' + str(j+1) + ',' + str(tipDiameter) + ','+ str(fixture[i]["skiveWidth"]) + ',' + str(fixture[i]["tipLength"]) + ',')
         file.write (str(fixture[i]["wire"+str(j)])[1:-1])
@@ -211,12 +211,11 @@ def plotData():
             for i in range (4):
                 for j in range (len(fixture[k]["wire"+str(i)])):
                     x[i].append(scanWidth*j)
+                if fixture[k]["skiveWidth_wire"+str(i)]=='N/A':
+                    plt.set_facecolor("yellow")
             
             plt.set_title(str(fixture[k]["fxnumber"]),color='black',fontsize=10)
             
-            if fixture[k]["skiveWidth"]=='N/A':
-                plt.set_facecolor("yellow")
-
             plt.plot(x[0],fixture[k]["wire0"],label="1")
             plt.plot(x[1],fixture[k]["wire1"],label="2")
             plt.plot(x[2],fixture[k]["wire2"],label="3")
@@ -257,13 +256,13 @@ btnConnect = tk.Button(master=frmInput, command = init, text="Connect Robot", wi
 btnReset = tk.Button(master=frmInput, command = resetRobot, text="Reset Robot", width = 18, height=2)
 btnMeasure = tk.Button(master=frmInput, command = pickNplace, text="Measure Wires", width = 18, height=2, bg="#FFEBB3")
 btnExit= tk.Button(master=frmInput, command = endProgram, text="Disconnect & Exit", width = 18, height=2)
-# btnPlt= tk.Button(master=frmInput, command = plotData, text="PlotGraphs", width = 18, height=2)
+btnPlt= tk.Button(master=frmInput, command = plotData, text="PlotGraphs", width = 18, height=2)
 
 btnMeasure.grid(row=6, column=0, columnspan=2, sticky="e", pady=(0,10))
 btnConnect.grid(row=7, column=0, columnspan=2, sticky="e", pady=(0,10))
 btnReset.grid(row=8, column=0, columnspan=2, sticky="e", pady=(0,10))
 btnExit.grid(row=9, column=0, columnspan=2, sticky="e", pady=(0,10))
-# btnPlt.grid(row=10, column=0, columnspan=2, sticky="e", pady=(0,10))
+btnPlt.grid(row=10, column=0, columnspan=2, sticky="e", pady=(0,10))
 
 window.protocol("WM_DELETE_WINDOW", endProgram)
 window.mainloop()
