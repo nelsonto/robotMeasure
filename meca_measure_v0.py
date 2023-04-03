@@ -139,7 +139,7 @@ def recordData(i):
         
         fixture[i]["skiveWidth_wire"+str(j)], fixture[i]["tipLength__wire"+str(j)] = skiveMeasure(fixture[i]["wire"+str(j)])
         
-        file.write(time.strftime('%m/%d/%y %H:%M,') + 'N/A'+ ',' + 'EQ-318 TMX,' + lotID.get() + ',' + str(j+1) + ',' + str(fixture[i]["fxnumber"]) + ',' + str(fixture[i]["fxnumber"]) + '-' + str(j+1) + ',' + str(tipDiameter) + ','+ str(fixture[i]["skiveWidth"]) + ',' + str(fixture[i]["tipLength"]) + ',')
+        file.write(time.strftime('%m/%d/%y %H:%M,') + 'N/A'+ ',' + 'EQ-318 TMX,' + lotID.get() + ',' + str(j+1) + ',' + str(fixture[i]["fxnumber"]) + ',' + str(fixture[i]["fxnumber"]) + '-' + str(j+1) + ',' + str(tipDiameter) + ','+ fixture[i]["skiveWidth_wire"+str(j)] + ',' + str(fixture[i]["tipLength_wire"+str(j)]) + ',')
         file.write (str(fixture[i]["wire"+str(j)])[1:-1])
         file.write('\n')
     
