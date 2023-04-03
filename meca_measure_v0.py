@@ -19,6 +19,7 @@ import tkinter as tk
 from tkinter import messagebox
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg)
+from skiveMeasure import skiveMeasure
 
 robot = mdr.Robot()
 
@@ -31,10 +32,10 @@ if not os.path.exists('Data'):
    os.makedirs('Data')
    
 #initalize system variables
-windowSize = 0.03   #interval width of each scanned region
+scanWidth = 0.03   #interval width of each scanned region
 numSamples = 100    #Number of sampling points
 tray = []
-fixture=[]
+# fixture=[]
 for i in range(10):
     fixture.append({"fxnumber": 0, "wire0":[0], "wire1":[0], "wire2":[0], "wire3":[0]})
 
@@ -126,16 +127,19 @@ def recordData(i):
     for j in range(numSamples):
         rawstring = rawstring +",Raw"+str(j+1)
         
-    headerFormat = "DateTime,OperatorID, EquipmentID, LotID,SensorNumber,FixtureID,SensorID,TipDiameter"+ rawstring +"\n"
+    headerFormat = "DateTime,OperatorID, EquipmentID, LotID,SensorNumber,FixtureID,SensorID,TipDiameter,skiveWidth,tipLength"+ rawstring +"\n"
     file = open ("Data\wireDiameter-" + time.strftime("%Y%m%d-%H%M%S") +"_" + str(fixture[i]["fxnumber"]) + ".csv", 'w')
     file.write(headerFormat)
     
     for j in range (4):
         try:
-            tipDiameter = max(fixture[i]["wire"+str(j)][0:25])  #only look for the max diameter in the first 0.75mm of the wire
+            tipDiameter = max(fixture[i]["wire"+str(j)][0:9])  #only look for the max diameter in the first 0.25mm of the wire
         except:
             tipDiameter = 0
-        file.write(time.strftime('%m/%d/%y %H:%M,') + 'N/A'+ ',' + 'EQ-318 TMX,' + lotID.get() + ',' + str(j+1) + ',' + str(fixture[i]["fxnumber"]) + ',' + str(fixture[i]["fxnumber"]) + '-' + str(j+1) + ',' + str(tipDiameter) + ',')
+        
+        fixture[i]["skiveWidth"], fixture[i]["tipLength"] = skiveMeasure(fixture[i]["wire"+str(j)])
+        
+        file.write(time.strftime('%m/%d/%y %H:%M,') + 'N/A'+ ',' + 'EQ-318 TMX,' + lotID.get() + ',' + str(j+1) + ',' + str(fixture[i]["fxnumber"]) + ',' + str(fixture[i]["fxnumber"]) + '-' + str(j+1) + ',' + str(tipDiameter) + ','+ str(fixture[i]["skiveWidth"]) + ',' + str(fixture[i]["tipLength"]) + ',')
         file.write (str(fixture[i]["wire"+str(j)])[1:-1])
         file.write('\n')
     
@@ -155,7 +159,7 @@ def measureWires (i):
         robot.Delay(0.75)
         fixture[i]["wire"+str(j)]= readKeyence()
     moveMeasure()
-    recordData(i)  
+    recordData(i)
     
 def pickFx(i):
     robot.MovePose(*(tray[i]))
@@ -194,7 +198,7 @@ def endProgram():
     
 def plotData():
     global fixture
-    global windowSize
+    global scanWidth
     
     figure.clf()
         
@@ -206,9 +210,13 @@ def plotData():
             
             for i in range (4):
                 for j in range (len(fixture[k]["wire"+str(i)])):
-                    x[i].append(windowSize*j)
+                    x[i].append(scanWidth*j)
             
             plt.set_title(str(fixture[k]["fxnumber"]),color='black',fontsize=10)
+            
+            if fixture[k]["skiveWidth"]=='N/A':
+                plt.set_facecolor("yellow")
+
             plt.plot(x[0],fixture[k]["wire0"],label="1")
             plt.plot(x[1],fixture[k]["wire1"],label="2")
             plt.plot(x[2],fixture[k]["wire2"],label="3")
