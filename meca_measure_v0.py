@@ -37,6 +37,8 @@ scanWidth = 0.03   #interval width of each scanned region
 numSamples = 100    #Number of sampling points
 tray = []
 fixture=[]
+errorMessage = "Wires to Rework:\n\n"
+
 for i in range(10):
     fixture.append({"fxnumber": 0, "wire0":[0], "wire1":[0], "wire2":[0], "wire3":[0]})
     
@@ -123,7 +125,8 @@ def readKeyence ():
 def recordData(i):
     global fixture
     global numSamples
-
+    global wireType
+    
     rawstring = ""
     for j in range(numSamples):
         rawstring = rawstring +",Raw"+str(j+1)
@@ -138,10 +141,14 @@ def recordData(i):
         except:
             tipDiameter = 0
         
-        try:
-            fixture[i]["skiveWidth_wire"+str(j)], fixture[i]["tipLength_wire"+str(j)] = skiveMeasure(fixture[i]["wire"+str(j)])
-        except:
+        if (wireType.get() == 1):
             fixture[i]["skiveWidth_wire"+str(j)], fixture[i]["tipLength_wire"+str(j)] = 'N/A', 'N/A'
+        else:
+            try:
+                fixture[i]["skiveWidth_wire"+str(j)], fixture[i]["tipLength_wire"+str(j)] = skiveMeasure(fixture[i]["wire"+str(j)])                    
+            except:
+                fixture[i]["skiveWidth_wire"+str(j)], fixture[i]["tipLength_wire"+str(j)] = 'N/A', 'N/A'
+            
         file.write(time.strftime('%m/%d/%y %H:%M,') + 'N/A'+ ',' + 'EQ-318 TMX,' + lotID.get() + ',' + str(j+1) + ',' + str(fixture[i]["fxnumber"]) + ',' + str(fixture[i]["fxnumber"]) + '-' + str(j+1) + ',' + str(tipDiameter) + ','+ str(fixture[i]["skiveWidth_wire"+str(j)]) + ',' + str(fixture[i]["tipLength_wire"+str(j)]) + ',')
         file.write (str(fixture[i]["wire"+str(j)])[1:-1])
         file.write('\n')
@@ -182,7 +189,9 @@ def placeFx(i):
     
 def pickNplace():
     global fixture
+    global errorMessage
     
+    errorMessage = "Wires to Rework:\n\n"
     fixture=[]
     for i in range(10):
         fixture.append({"fxnumber": 0, "wire0":[0], "wire1":[0], "wire2":[0], "wire3":[0]})
@@ -208,6 +217,7 @@ def plotData():
     global fixture
     global scanWidth
     global wireType
+    global errorMessage
     
     figure.clf()
         
@@ -220,7 +230,6 @@ def plotData():
             plt.set_title(str(fixture[k]["fxnumber"]),color='black',fontsize=10)
             
             if (wireType.get() == 1):
-                print("Using reference axis now")
                 plt.axis([0, 3, 0.11, 0.150])     #axis scale for reference wire
                 plt.set_yticks(np.arange(0.11,0.15,0.005))
                 for i in range (4):
@@ -232,13 +241,16 @@ def plotData():
                 for i in range (4):
                     for j in range (len(fixture[k]["wire"+str(i)])):
                         x[i].append(scanWidth*j)
-                    if fixture[k]["skiveWidth_wire"+str(i)]=='N/A':
+                    if fixture[k]["skiveWidth_wire"+str(i)]=='N/A' or fixture[k]["wire"+str(i)]==[]:
                         plt.set_facecolor('#FFCCCC')
+                        errorMessage = errorMessage + str(fixture[k]["fxnumber"]) + " - wire " + str(i+1) + "\n"
             
             plt.plot(x[0],fixture[k]["wire0"],label="1")
             plt.plot(x[1],fixture[k]["wire1"],label="2")
             plt.plot(x[2],fixture[k]["wire2"],label="3")
             plt.plot(x[3],fixture[k]["wire3"],label="4")
+            
+            msgError.config(text=errorMessage)
             
             plt.set_xticks(np.arange(0,3,0.5))
           
@@ -273,7 +285,7 @@ entLOT.grid(row=1, column=1, pady=(20,20), padx=(5,5), ipady=5, ipadx=5)
 entTypeCheck = tk.Checkbutton(master=frmInput, text='Reference', font=('Arial',12), variable=wireType, onvalue=1, offvalue=0) #wireType 0 = working wire, 1 = reference wire
 entTypeCheck.grid(row=3, column=1, sticky="w", pady=(0,15))
 
-msgError = tk.Message(master=frmInput, text = "test\ntest another line again what if I write a whole paragrah?", width = 100)
+msgError = tk.Label(master=frmInput, text = errorMessage, width = 18, justify='left')
 
 btnConnect = tk.Button(master=frmInput, command = init, text="Connect Robot", width = 18, height=2)
 btnReset = tk.Button(master=frmInput, command = resetRobot, text="Reset Robot", width = 18, height=2)
