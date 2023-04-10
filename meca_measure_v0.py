@@ -162,7 +162,7 @@ def measureWires (i):
     if (wireType.get() == 1):
         robot.MovePose(150,142.9,162,-90,0,90)     #pre wire 1 position for reference wire
     else:
-        robot.MovePose(150,142.9,152.625,-90,0,90)     #pre wire 1 position for working wire
+        robot.MovePose(150,142.9,152.125,-90,0,90)     #pre wire 1 position for working wire
 
     for j in range (4): 
         robot.MoveLinRelTrf(0, 0, 9.25, 0, 0, 0)
@@ -285,7 +285,7 @@ entLOT.grid(row=1, column=1, pady=(20,20), padx=(5,5), ipady=5, ipadx=5)
 entTypeCheck = tk.Checkbutton(master=frmInput, text='Reference', font=('Arial',12), variable=wireType, onvalue=1, offvalue=0) #wireType 0 = working wire, 1 = reference wire
 entTypeCheck.grid(row=3, column=1, sticky="w", pady=(0,15))
 
-msgError = tk.Label(master=frmInput, text = errorMessage, width = 18, justify='left')
+msgError = tk.Label(master=frmInput, text = errorMessage, font=('Arial',10), width = 18, justify='left')
 
 btnConnect = tk.Button(master=frmInput, command = init, text="Connect Robot", width = 18, height=2)
 btnReset = tk.Button(master=frmInput, command = resetRobot, text="Reset Robot", width = 18, height=2)
@@ -299,7 +299,7 @@ btnReset.grid(row=8, column=0, columnspan=2, sticky="e", pady=(0,10))
 btnExit.grid(row=9, column=0, columnspan=2, sticky="e", pady=(0,10))
 btnPlt.grid(row=10, column=0, columnspan=2, sticky="e", pady=(0,10))
 
-msgError.grid(row=11, column=0, columnspan=2, sticky="w", pady=(0,10))
+msgError.grid(row=11, column=0, columnspan=2, sticky="w", pady=(10,10))
 
 window.protocol("WM_DELETE_WINDOW", endProgram)
 window.mainloop()
